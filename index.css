@@ -1,0 +1,57 @@
+/*
+  ================================================================
+  Fișierul Principal de Stiluri - src/index.css
+  ================================================================
+*/
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+    SETARE NOUĂ: Aplicăm culoarea de fundal și fontul de bază
+    direct pe tag-ul <body> al întregii pagini.
+  */
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+
+  .aurora-background {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .aurora-background::before,
+  .aurora-background::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    filter: blur(100px);
+    border-radius: 50%;
+  }
+
+  .aurora-background::before {
+    width: 400px;
+    height: 400px;
+    background-color: theme('colors.primary / 15%');
+    animation: move_aurora_1 25s infinite alternate;
+  }
+
+  .aurora-background::after {
+    width: 300px;
+    height: 300px;
+    background-color: theme('colors.secondary / 15%');
+    animation: move_aurora_2 20s infinite alternate;
+  }
+}
+
+@keyframes move_aurora_1 {
+  from { transform: translate(-200px, -100px) rotate(0deg); }
+  to { transform: translate(200px, 150px) rotate(180deg); }
+}
+
+@keyframes move_aurora_2 {
+  from { transform: translate(150px, 100px) rotate(45deg); }
+  to { transform: translate(-150px, -150px) rotate(225deg); }
+}
