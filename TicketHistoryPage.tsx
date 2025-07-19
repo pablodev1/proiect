@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { IoArrowBack, IoArchiveOutline } from 'react-icons/io5';
 
 // REPARAȚIE: Folosim noul alias '@' pentru căi stabile
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { fetchTicketsForUser } from '@/lib/tickets';
 
 type Ticket = {

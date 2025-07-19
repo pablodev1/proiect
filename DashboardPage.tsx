@@ -1,19 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  IoTicketOutline,
-  IoTimeOutline,
+import { 
   IoAddCircle,
-  IoLinkOutline,
-  IoArchiveOutline,
   IoPersonCircleOutline,
-  IoLogOutOutline,
-  IoShieldCheckmarkOutline
+  IoLogOutOutline
 } from 'react-icons/io5';
-
-// Folosim alias-ul '@' pentru căi stabile
 import { signOut } from '@/lib/auth';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { fetchTicketsForUser } from '@/lib/tickets';
 
 type Ticket = {
@@ -55,7 +48,7 @@ export function DashboardPage() {
     if (status === 'Deschis') return 'text-red-400';
     return 'text-slate-400';
   };
-
+  
   const activeTickets = tickets.filter(t => t.status !== 'Rezolvat');
 
   const handleLogout = async () => {
@@ -85,7 +78,6 @@ export function DashboardPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Aici este secțiunea modificată */}
         <div className="lg:col-span-1 bg-surface/60 border border-border p-6 rounded-2xl">
            <h3 className="font-heading text-xl font-bold mb-4">Status Servicii</h3>
              <div className="space-y-3 text-slate-300">

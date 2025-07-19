@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // REPARAȚIE: Am înlocuit căile relative cu alias-ul '@'
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 
 export function NewTicketPage() {

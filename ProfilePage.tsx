@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-
-// REPARAȚIE: Am înlocuit căile relative cu alias-ul '@'
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { updateUserProfile } from '@/lib/auth';
 
 export function ProfilePage() {

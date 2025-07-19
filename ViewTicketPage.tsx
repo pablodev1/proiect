@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { IoArrowBack, IoSend, IoCloseCircleOutline, IoPersonCircleOutline, IoAttach } from 'react-icons/io5';
-
-// REPARAȚIE: Am înlocuit căile relative cu alias-ul '@'
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabaseClient';
 import { fetchTicketById, fetchRepliesForTicket, addReplyToTicket, updateTicketStatus } from '@/lib/tickets';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
+import { IoArrowBack, IoSend, IoCloseCircleOutline, IoPersonCircleOutline, IoAttach, IoImageOutline } from 'react-icons/io5';
 
-
-// Definirea tipurilor pentru o mai bună verificare
 type Reply = {
   id: string;
   message: string;
   created_at: string;
+  attachment_url?: string;
   author: {
     name: string;
     role: 'admin' | 'client';
@@ -23,8 +22,6 @@ type Ticket = {
   title: string;
   description: string;
   status: string;
-  priority: string;
-  created_at: string;
   client_id: string;
   attachment_url?: string;
 };
@@ -36,7 +33,9 @@ export function ViewTicketPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [replies, setReplies] = useState<Reply[]>([]);
   const [newReply, setNewReply] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
 
   const loadData = async () => {
     if (!ticketId) return;
@@ -44,7 +43,7 @@ export function ViewTicketPage() {
       const ticketData = await fetchTicketById(ticketId);
       setTicket(ticketData);
       const repliesData = await fetchRepliesForTicket(ticketId);
-      setReplies(repliesData);
+      setReplies(repliesData || []);
     } catch (error) {
       console.error("Nu s-au putut încărca datele tichetului.", error);
     } finally {
@@ -57,16 +56,46 @@ export function ViewTicketPage() {
     loadData();
   }, [ticketId]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAttachment(e.target.files[0]);
+    }
+  };
+
   const handleAddReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newReply.trim() || !session?.user || !ticketId) return;
+    if ((!newReply.trim() && !attachment) || !session?.user || !ticketId) return;
 
+    setSending(true);
     try {
-      await addReplyToTicket(ticketId, session.user.id, newReply);
+      let attachmentUrl: string | null = null;
+      if (attachment) {
+        const fileExt = attachment.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('ticket-attachments').upload(fileName, attachment);
+        if (uploadError) throw uploadError;
+        
+        const { data: urlData } = supabase.storage.from('ticket-attachments').getPublicUrl(fileName);
+        attachmentUrl = urlData.publicUrl;
+      }
+      
+      const newReplyData = await addReplyToTicket(ticketId, session.user.id, newReply, attachmentUrl);
+
+      if (newReplyData && newReplyData.length > 0) {
+        const replyWithAuthor: Reply = {
+          ...newReplyData[0],
+          author: { name: profile?.name || 'Client', role: profile?.role || 'client' }
+        };
+        setReplies(currentReplies => [...currentReplies, replyWithAuthor]);
+      }
+      
       setNewReply('');
-      await loadData();
+      setAttachment(null);
     } catch (error) {
+      console.error(error);
       alert("Eroare la trimiterea mesajului.");
+    } finally {
+      setSending(false);
     }
   };
   
@@ -120,37 +149,28 @@ export function ViewTicketPage() {
         
         <div className="space-y-6">
           <div className="flex gap-4">
-             <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white bg-primary">
-                <IoPersonCircleOutline className="text-2xl" />
-            </div>
+            <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white bg-primary"><IoPersonCircleOutline className="text-2xl" /></div>
             <div className="w-full">
               <p className="font-bold text-foreground">{profile?.name || 'Client'}</p>
               <div className="mt-1 inline-block text-left p-4 rounded-lg bg-background/50 prose prose-invert max-w-none">
                 <p>{ticket.description}</p>
-                {ticket.attachment_url && (
-                   <a href={ticket.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-3 text-primary hover:underline">
-                      <IoAttach /> Vezi Atașament
-                   </a>
-                )}
+                {ticket.attachment_url && (<a href={ticket.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-3 text-primary hover:underline"><IoAttach /> Vezi Atașament</a>)}
               </div>
             </div>
           </div>
-
           {replies.map((reply) => {
             const isAuthorAdmin = reply.author?.role === 'admin';
             const authorName = reply.author?.name || (isAuthorAdmin ? 'Suport Tehnic' : 'Client');
             const authorInitial = authorName.charAt(0).toUpperCase();
-
             return (
-              <div key={reply.id} className={`flex gap-4 ${isAuthorAdmin ? 'justify-end' : 'justify-start'}`}>
+              <div key={reply.id} className={`flex gap-4 ${isAuthorAdmin ? 'justify-end' : ''}`}>
                 <div className={`w-full flex gap-4 ${isAuthorAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white ${isAuthorAdmin ? 'bg-secondary' : 'bg-primary'}`}>
-                        {authorInitial}
-                    </div>
-                    <div className={`${isAuthorAdmin ? 'text-right' : 'text-left'}`}>
+                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white ${isAuthorAdmin ? 'bg-secondary' : 'bg-primary'}`}>{authorInitial}</div>
+                    <div className={`${isAuthorAdmin ? 'text-right' : ''}`}>
                         <p className="font-bold text-foreground">{authorName}</p>
                         <div className={`mt-1 inline-block text-left p-4 rounded-lg prose prose-invert max-w-none ${isAuthorAdmin ? 'bg-secondary/20' : 'bg-background/50'}`}>
-                            <p>{reply.message}</p>
+                           {reply.message && <p>{reply.message}</p>}
+                           {reply.attachment_url && (<a href={reply.attachment_url} target="_blank" rel="noopener noreferrer"><img src={reply.attachment_url} alt="Atașament" className="mt-2 rounded-lg max-w-xs cursor-pointer"/></a>)}
                         </div>
                     </div>
                 </div>
@@ -160,21 +180,15 @@ export function ViewTicketPage() {
         </div>
 
         {ticket.status !== 'Rezolvat' && (
-          <form onSubmit={handleAddReply} className="mt-8 pt-6 border-t border-border flex gap-4 items-center">
-             <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-white bg-primary">
-                <IoPersonCircleOutline className="text-2xl" />
-            </div>
-            <input 
-              type="text" 
-              value={newReply}
-              onChange={(e) => setNewReply(e.target.value)}
-              placeholder="Scrie un răspuns..."
-              className="w-full bg-background/50 border border-border rounded-lg px-4 py-3 focus:ring-primary focus:border-primary"
-            />
-            <button type="submit" className="bg-primary text-white p-3 rounded-lg hover:bg-primary/80 disabled:opacity-50" disabled={!newReply.trim()}>
-              <IoSend />
-            </button>
-          </form>
+          <div className="mt-8 pt-6 border-t border-border">
+            {attachment && (<div className="mb-2 text-sm text-slate-300">Atașat: {attachment.name}</div>)}
+            <form onSubmit={handleAddReply} className="flex gap-4 items-center">
+              <label htmlFor="file-input" className="cursor-pointer text-slate-400 hover:text-primary p-3 rounded-lg bg-background/50 border border-border"><IoImageOutline className="text-xl"/></label>
+              <input id="file-input" type="file" onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/gif"/>
+              <input type="text" value={newReply} onChange={(e) => setNewReply(e.target.value)} placeholder="Scrie un răspuns..." className="w-full bg-background/50 border border-border rounded-lg px-4 py-3"/>
+              <button type="submit" className="bg-primary text-white p-3 rounded-lg" disabled={sending}>{sending ? '...' : <IoSend />}</button>
+            </form>
+          </div>
         )}
       </div>
     </div>

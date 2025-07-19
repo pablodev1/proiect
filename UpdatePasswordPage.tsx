@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/lib/supabaseClient';
 
+// REPARAȚIE: Asigură-te că "export" este prezent aici
 export function UpdatePasswordPage() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -9,20 +10,27 @@ export function UpdatePasswordPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleUpdatePassword = async (e) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setMessage('');
     
-    const { error } = await supabase.auth.updateUser({ password: password });
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: password });
 
-    if (error) {
-      setError(error.message);
-    } else {
+      if (updateError) {
+        throw updateError;
+      }
+
       setMessage('Parola a fost actualizată cu succes! Vei fi redirecționat.');
-      setTimeout(() => navigate('/client/dashboard'), 2000);
+      setTimeout(() => navigate('/client/dashboard'), 3000);
+
+    } catch (err: any) {
+      setError(err.message || 'A apărut o eroare la salvarea parolei.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
   
   return (
@@ -32,7 +40,14 @@ export function UpdatePasswordPage() {
           <form onSubmit={handleUpdatePassword} className="space-y-6 text-left mt-8">
             <div>
               <label htmlFor="password">Parolă Nouă</label>
-              <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-background/50 border border-border rounded-lg px-4 py-2 mt-2" required />
+              <input 
+                type="password" 
+                id="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                className="w-full bg-background/50 border border-border rounded-lg px-4 py-2 mt-2" 
+                required 
+              />
             </div>
             {message && <p className="text-green-400 text-sm">{message}</p>}
             {error && <p className="text-red-400 text-sm">{error}</p>}
@@ -42,5 +57,5 @@ export function UpdatePasswordPage() {
           </form>
         </div>
     </main>
-  )
+  );
 }

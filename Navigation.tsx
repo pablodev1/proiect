@@ -1,28 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { IoHomeOutline, IoCodeSlashOutline, IoMailOutline, IoPersonCircleOutline } from 'react-icons/io5';
-import { useAuth } from '../contexts/AuthContext';
+// REPARAȚIE: Am actualizat calea de import pentru a folosi noul fișier al hook-ului.
+import { useAuth } from '@/hooks/useAuth';
 
-// Am revenit la o structură fixă
 const navItems = [
   { name: 'Acasă', icon: IoHomeOutline, path: '/' },
   { name: 'Servicii', icon: IoCodeSlashOutline, path: '/servicii' },
   { name: 'Contact', icon: IoMailOutline, path: '/contact' },
-  { name: 'Client', icon: IoPersonCircleOutline, path: '/login' }, // Acesta va fi elementul dinamic
+  { name: 'Client', icon: IoPersonCircleOutline, path: '/login' },
 ];
 
 const ITEM_WIDTH = 100;
 
 export function Navigation() {
-  const { session } = useAuth(); // Verificăm dacă există o sesiune activă
+  const { session } = useAuth();
   const location = useLocation();
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Logica pentru a seta indexul activ, inclusiv pentru paginile de client
   useEffect(() => {
     const currentPath = location.pathname;
     if (currentPath.startsWith('/client')) {
-      setActiveIndex(3); // Orice cale care începe cu /client activează al 4-lea element
+      setActiveIndex(3);
     } else {
       const activeItemIndex = navItems.findIndex(item => item.path === currentPath);
       if (activeItemIndex !== -1) {
@@ -31,7 +30,6 @@ export function Navigation() {
     }
   }, [location]);
 
-  // Decidem unde duce ultimul link: la dashboard dacă ești logat, altfel la login
   const clientPath = session ? '/client/dashboard' : '/login';
 
   return (
@@ -40,7 +38,6 @@ export function Navigation() {
         {navItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = activeIndex === index;
-          // Folosim calea dinamică pentru ultimul element
           const path = index === 3 ? clientPath : item.path;
 
           return (

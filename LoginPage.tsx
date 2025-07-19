@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { signInWithEmail } from '../lib/auth';
+import { signInWithEmail } from '@/lib/auth';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,9 +14,15 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      // 1. Încercăm să ne autentificăm
       await signInWithEmail(email, password);
-      await refreshProfile();
+      
+      // REPARAȚIE: Am șters linia "await refreshProfile()" de aici.
+      // Nu mai este necesară, deoarece AuthContext gestionează automat încărcarea profilului după login.
+
+      // 2. Redirecționăm către panoul de client
       navigate('/client/dashboard');
+
     } catch (err: any) {
       setError(err.message || 'Email sau parolă incorectă.');
     } finally {
@@ -52,7 +56,6 @@ export function LoginPage() {
             />
           </div>
           <div>
-            {/* AICI ESTE SECȚIUNEA CARE LIPSEA LA TINE */}
             <div className="flex justify-between items-center mb-2">
               <label htmlFor="password" className="block text-sm font-medium text-slate-300">Parolă</label>
               <Link to="/forgot-password" className="text-sm text-primary hover:underline">

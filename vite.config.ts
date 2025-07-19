@@ -1,14 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'node:path' // Asigură-te că ai importat 'path'
+// REPARAȚIE: Importăm ce ne trebuie din 'node:url' pentru o rezolvare modernă a căilor
+import { URL, fileURLToPath } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // REPARAȚIE: Adaugă această secțiune 'resolve'
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      // REPARAȚIE: Folosim noua metodă, bazată pe URL, pentru a defini alias-ul.
+      // Aceasta funcționează corect în toate mediile moderne.
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
 })
